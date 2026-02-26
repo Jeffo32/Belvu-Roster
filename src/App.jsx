@@ -2124,7 +2124,7 @@ function WeekViewScreen({ shifts, setShifts, weekOffset, setWeekOffset, shiftsMa
 
       {/* Scrollable grid — both axes */}
       <div ref={tableScrollRef} onScroll={handleTableScroll} style={{flex:1,overflow:"auto",position:"relative"}}>
-        <table style={{borderCollapse:"separate",borderSpacing:0,fontSize:11,whiteSpace:"nowrap",tableLayout:"fixed",width: (scrolledRight ? 46 : 130) + 7*120}}>
+        <table style={{borderCollapse:"separate",borderSpacing:0,fontSize:11,whiteSpace:"nowrap",tableLayout:"fixed",minWidth:(scrolledRight ? 46 : 130) + 7*120, width:"100%"}}>
 
           {/* Sticky column headers (day names + dates) */}
           <thead>
