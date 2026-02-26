@@ -1960,7 +1960,6 @@ function RosterToast({ emoji, title, sub, accent, accentDim, bg, duration }) {
   const style = {
     position:"fixed", top:"50%", left:"50%",
     zIndex:9999, pointerEvents:"none",
-    transform:"translate(-50%,-50%)",
     transition: phase === "in"
       ? "opacity 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.34,1.56,0.64,1)"
       : "opacity 0.2s cubic-bezier(0.4,0,1,1), transform 0.2s cubic-bezier(0.4,0,1,1)",
