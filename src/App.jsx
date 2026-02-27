@@ -2498,25 +2498,26 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
       const sqId = mapping[sh.staffId];
       if (!sqId) continue; // silently skip unmapped
       try {
-        const res = await fetch("/api/square-shifts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const payload = {
             token,
             shift: {
-              idempotency_key: `bv2-${weekOffset}-${sh.staffId}-${sh.day}-${sh.start.replace(/[^0-9]/g,"")}`,
+              idempotency_key: `bv3-${weekOffset}-${sh.staffId}-${sh.day}-${sh.start.replace(/[^0-9]/g,"")}`,
               scheduled_shift: {
                 draft_shift_details: {
                   team_member_id: sqId,
                   location_id:    locationIds[sh.location] || "",
-
                   start_at:       toISO(sh.day, sh.start),
                   end_at:         toISO(sh.day, sh.end),
                   notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
                 },
               },
             },
-          }),
+          };
+        console.log("SENDING TO SQUARE:", JSON.stringify(payload.shift, null, 2));
+        const res = await fetch("/api/square-shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.errors?.length) {
