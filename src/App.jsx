@@ -2374,10 +2374,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     try { return JSON.parse(localStorage.getItem("belvu_sq_locs") || "{}"); } catch { return {}; }
   });
   const [sqMembers,    setSqMembers]    = useState([]);
-  const [sqJobs,       setSqJobs]       = useState([]);
-  const [jobMapping,   setJobMapping]   = useState(() => {
-    try { return JSON.parse(localStorage.getItem("belvu_sq_jobs") || "{}"); } catch { return {}; }
-  });
+
   const [fetchingTeam, setFetchingTeam] = useState(false);
   const [fetchError,   setFetchError]   = useState("");
   const [publishing,   setPublishing]   = useState(false);
@@ -2425,9 +2422,9 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
   };
 
   const clearAll = () => {
-    ["belvu_sq_token","belvu_sq_locs","belvu_sq_map","belvu_sq_jobs"].forEach(k => localStorage.removeItem(k));
-    setToken(""); setLocationIds({}); setMapping({}); setJobMapping({});
-    setTokenInput(""); setLocInputs({}); setSqMembers([]); setSqJobs([]);
+    ["belvu_sq_token","belvu_sq_locs","belvu_sq_map"].forEach(k => localStorage.removeItem(k));
+    setToken(""); setLocationIds({}); setMapping({});
+    setTokenInput(""); setLocInputs({}); setSqMembers([]);
     setStep("token"); setPubResult(null);
   };
 
@@ -2436,27 +2433,17 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     setFetchingTeam(true);
     setFetchError("");
     try {
-      const [teamRes, jobsRes] = await Promise.all([
-        fetch("/api/square-team", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        }),
-        fetch("/api/square-jobs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        }),
-      ]);
+      const teamRes  = await fetch("/api/square-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
       const teamData = await teamRes.json();
-      const jobsData = await jobsRes.json();
       if (teamData.errors) throw new Error(teamData.errors[0]?.detail || "Square team API error");
       const members = (teamData.team_members || [])
         .filter(m => m.status === "ACTIVE")
         .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
       setSqMembers(members);
-      const jobs = (jobsData.jobs || []).sort((a,b) => (a.title||"").localeCompare(b.title||""));
-      setSqJobs(jobs);
 
       // Auto-match staff by name (first name or full name)
       const currentMap = JSON.parse(localStorage.getItem("belvu_sq_map") || "{}");
@@ -2476,17 +2463,6 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
       setMapping(autoMap);
       localStorage.setItem("belvu_sq_map", JSON.stringify(autoMap));
 
-      // Auto-match jobs by title
-      const currentJobMap = JSON.parse(localStorage.getItem("belvu_sq_jobs") || "{}");
-      const autoJobMap = { ...currentJobMap };
-      const belvuRoles = [...new Set((staff||INITIAL_STAFF).filter(s=>s.active!==false).map(s=>s.role).filter(Boolean))];
-      belvuRoles.forEach(role => {
-        if (autoJobMap[role]) return;
-        const match = jobs.find(j => normalize(j.title) === normalize(role));
-        if (match) autoJobMap[role] = match.id;
-      });
-      setJobMapping(autoJobMap);
-      localStorage.setItem("belvu_sq_jobs", JSON.stringify(autoJobMap));
 
       setStep("map");
     } catch (e) {
@@ -2502,14 +2478,6 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     localStorage.setItem("belvu_sq_map", JSON.stringify(next));
   };
 
-  const saveJobMapping = (role, jobId) => {
-    const next = { ...jobMapping, [role]: jobId };
-    setJobMapping(next);
-    localStorage.setItem("belvu_sq_jobs", JSON.stringify(next));
-  };
-
-  const uniqueRoles = [...new Set(activeStaff.map(s => s.role).filter(Boolean))].sort();
-  const jobsMapped  = uniqueRoles.every(r => jobMapping[r]);
 
   const mappedCount   = activeStaff.filter(s => mapping[s.id]).length;
   const mappedShifts  = shifts.filter(sh => mapping[sh.staffId]).length;
@@ -2536,9 +2504,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
                 draft_shift_details: {
                   team_member_id: sqId,
                   location_id:    locationIds[sh.location] || Object.values(locationIds)[0] || "",
-                  ...(jobMapping[staffById[sh.staffId]?.role]
-                    ? { job_id: jobMapping[staffById[sh.staffId]?.role] }
-                    : {}),
+
                   start_at:       toISO(sh.day, sh.start),
                   end_at:         toISO(sh.day, sh.end),
                   notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
@@ -2752,33 +2718,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
                     </div>
                   ))}
                 </div>
-                {sqJobs.length > 0 && (
-                  <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid #1e293b"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                      <div style={{fontSize:12,fontWeight:600,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif"}}>Map Roles → Square Jobs</div>
-                      <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:jobsMapped?"#4ade80":"#f97316"}}>
-                        {uniqueRoles.filter(r=>jobMapping[r]).length}/{uniqueRoles.length} mapped
-                      </div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
-                      {uniqueRoles.map(role=>(
-                        <div key={role} style={{display:"flex",alignItems:"center",gap:10,background:"#060d18",borderRadius:9,padding:"8px 10px",border:`1px solid ${jobMapping[role]?"#4c1d95":"#0f172a"}`}}>
-                          <div style={{flex:1,fontSize:12,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif"}}>{role}</div>
-                          <select
-                            value={jobMapping[role]||""}
-                            onChange={e=>saveJobMapping(role, e.target.value)}
-                            style={{background:"#0f172a",border:`1px solid ${jobMapping[role]?"#7c3aed":"#1e293b"}`,borderRadius:7,padding:"6px 8px",color:jobMapping[role]?"#c4b5fd":"#475569",fontSize:10,fontFamily:"'DM Mono',monospace",outline:"none",maxWidth:160,cursor:"pointer"}}
-                          >
-                            <option value="">— select job —</option>
-                            {sqJobs.map(j=>(
-                              <option key={j.id} value={j.id}>{j.title}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+
                 <button onClick={()=>setStep("publish")} disabled={mappedCount===0} style={bigBtn(mappedCount>0)}>
                   {mappedCount===0?"Map at least one staff member":`Continue → ${mappedShifts} shifts ready`}
                 </button>
