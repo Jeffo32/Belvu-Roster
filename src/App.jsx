@@ -95,20 +95,20 @@ const CASUAL_DEFAULTS = [
   { staffId:3,  day:"Sat", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:3,  day:"Sun", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Bailey Coleman — 10am–10pm on available days
-  { staffId:6,  day:"Mon", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Tue", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Wed", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Sat", start:"10:00 AM", end:"2:30 PM", location:"The Pit" },
-  { staffId:6,  day:"Sun", start:"10:00 AM", end:"2:30 PM", location:"The Pit" },
+  { staffId:6,  day:"Mon", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Tue", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Wed", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Sat", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Sun", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
   // Benny Coventry — 5–9pm Tue/Wed/Thu
-  { staffId:7,  day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
-  { staffId:7,  day:"Wed", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
-  { staffId:7,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
+  { staffId:7,  day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
+  { staffId:7,  day:"Wed", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
+  { staffId:7,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
   // Blake — 12–10pm available days
-  { staffId:8,  day:"Mon", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Tue", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Sat", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Sun", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Mon", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Tue", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Sat", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Sun", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
   // Coco — 5–9pm available days
   { staffId:9,  day:"Mon", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:9,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
@@ -116,7 +116,7 @@ const CASUAL_DEFAULTS = [
   // Dolce Malosso — Thu 5–9pm
   { staffId:12, day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Harry Coventry — Wed 5–11pm
-  { staffId:16, day:"Wed", start:"5:00 PM",  end:"9:00 PM", location:"The Pit" },
+  { staffId:16, day:"Wed", start:"5:00 PM",  end:"11:00 PM", location:"The Pit" },
   // Jefferson Wolfe — evenings on available days
   { staffId:17, day:"Mon", start:"4:30 PM",  end:"9:00 PM",  location:"The Pit" },
   { staffId:17, day:"Wed", start:"4:30 PM",  end:"9:00 PM",  location:"The Pit" },
@@ -140,7 +140,7 @@ const CASUAL_DEFAULTS = [
   { staffId:26, day:"Sat", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:26, day:"Sun", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Sarah-Jane — Tue 5–8pm
-  { staffId:27, day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
+  { staffId:27, day:"Tue", start:"5:00 PM",  end:"8:00 PM",  location:"Nicks Thai" },
   // Tia Malosso — Mon/Sun 5–9pm
   { staffId:29, day:"Mon", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:29, day:"Sun", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
@@ -2422,14 +2422,10 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     setFetchingTeam(true);
     setFetchError("");
     try {
-      const body = locationId ? { location_ids: [locationId] } : {};
-      const res  = await fetch("https://connect.squareup.com/v2/team-members/search", {
+      const body = locationId ? { token, location_ids: [locationId] } : { token };
+      const res  = await fetch("/api/square-team", {
         method: "POST",
-        headers: {
-          "Authorization":  `Bearer ${token}`,
-          "Content-Type":   "application/json",
-          "Square-Version": "2025-05-21",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -2466,22 +2462,21 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
       const sqId = mapping[sh.staffId];
       if (!sqId) continue; // silently skip unmapped
       try {
-        const res = await fetch("https://connect.squareup.com/v2/labor/scheduled-shifts", {
+        const res = await fetch("/api/square-shifts", {
           method: "POST",
-          headers: {
-            "Authorization":  `Bearer ${token}`,
-            "Content-Type":   "application/json",
-            "Square-Version": "2025-05-21",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            idempotency_key: `belvu-${sh.id}-${weekOffset}`,
-            scheduled_shift: {
-              draft_shift_details: {
-                team_member_id: sqId,
-                location_id:    locationId || undefined,
-                start_at:       toISO(sh.day, sh.start),
-                end_at:         toISO(sh.day, sh.end),
-                notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
+            token,
+            shift: {
+              idempotency_key: `belvu-${sh.id}-${weekOffset}`,
+              scheduled_shift: {
+                draft_shift_details: {
+                  team_member_id: sqId,
+                  location_id:    locationId || undefined,
+                  start_at:       toISO(sh.day, sh.start),
+                  end_at:         toISO(sh.day, sh.end),
+                  notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
+                },
               },
             },
           }),
