@@ -95,20 +95,20 @@ const CASUAL_DEFAULTS = [
   { staffId:3,  day:"Sat", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:3,  day:"Sun", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Bailey Coleman — 10am–10pm on available days
-  { staffId:6,  day:"Mon", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Tue", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Wed", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Sat", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Sun", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Mon", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Tue", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Wed", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Sat", start:"10:00 AM", end:"2:30 PM", location:"The Pit" },
+  { staffId:6,  day:"Sun", start:"10:00 AM", end:"2:30 PM", location:"The Pit" },
   // Benny Coventry — 5–9pm Tue/Wed/Thu
-  { staffId:7,  day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
-  { staffId:7,  day:"Wed", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
-  { staffId:7,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Mama Vu's Kitchen" },
+  { staffId:7,  day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
+  { staffId:7,  day:"Wed", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
+  { staffId:7,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Blake — 12–10pm available days
-  { staffId:8,  day:"Mon", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Tue", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Sat", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
-  { staffId:8,  day:"Sun", start:"12:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Mon", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Tue", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Sat", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
+  { staffId:8,  day:"Sun", start:"4:30 PM", end:"9:00 PM", location:"The Pit" },
   // Coco — 5–9pm available days
   { staffId:9,  day:"Mon", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:9,  day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
@@ -116,7 +116,7 @@ const CASUAL_DEFAULTS = [
   // Dolce Malosso — Thu 5–9pm
   { staffId:12, day:"Thu", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Harry Coventry — Wed 5–11pm
-  { staffId:16, day:"Wed", start:"5:00 PM",  end:"11:00 PM", location:"The Pit" },
+  { staffId:16, day:"Wed", start:"5:00 PM",  end:"9:00 PM", location:"The Pit" },
   // Jefferson Wolfe — evenings on available days
   { staffId:17, day:"Mon", start:"4:30 PM",  end:"9:00 PM",  location:"The Pit" },
   { staffId:17, day:"Wed", start:"4:30 PM",  end:"9:00 PM",  location:"The Pit" },
@@ -140,7 +140,7 @@ const CASUAL_DEFAULTS = [
   { staffId:26, day:"Sat", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:26, day:"Sun", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Sarah-Jane — Tue 5–8pm
-  { staffId:27, day:"Tue", start:"5:00 PM",  end:"8:00 PM",  location:"Nicks Thai" },
+  { staffId:27, day:"Tue", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Tia Malosso — Mon/Sun 5–9pm
   { staffId:29, day:"Mon", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:29, day:"Sun", start:"5:00 PM",  end:"9:00 PM",  location:"Nicks Thai" },
@@ -2353,313 +2353,482 @@ function WeekViewScreen({ shifts, setShifts, weekOffset, setWeekOffset, shiftsMa
 // ─── PUBLISH ──────────────────────────────────────────────────────────────────
 
 function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
-  const staffById = makeStaffById(staff||INITIAL_STAFF);
-  const [squareKey, setSquareKey]       = useState(() => localStorage.getItem("belvu_sq_key") || "");
-  const [showKey, setShowKey]           = useState(false);
-  const [keySaved, setKeySaved]         = useState(() => !!localStorage.getItem("belvu_sq_key"));
-  const [squareLoading, setSquareLoading] = useState(false);
-  const [squareStatus, setSquareStatus] = useState(null);
-  const [squareError, setSquareError]   = useState("");
-  const [copied, setCopied]             = useState(false);
+  const staffById = makeStaffById(staff || INITIAL_STAFF);
   const weekDates = getWeekDates(weekOffset);
-  const totalStaff = new Set(shifts.map(s=>s.staffId)).size;
+  const activeStaff = (staff || INITIAL_STAFF).filter(s => s.active !== false);
 
-  // Save key to localStorage whenever it changes
-  const handleKeyChange = (val) => {
-    setSquareKey(val);
-    setKeySaved(false);
+  // ── Persisted state ──────────────────────────────────────────────────────
+  const [token,      setToken]      = useState(() => localStorage.getItem("belvu_sq_token") || "");
+  const [locationId, setLocationId] = useState(() => localStorage.getItem("belvu_sq_loc")   || "");
+  const [mapping,    setMapping]    = useState(() => {
+    try { return JSON.parse(localStorage.getItem("belvu_sq_map") || "{}"); } catch { return {}; }
+  });
+
+  // ── UI state ─────────────────────────────────────────────────────────────
+  const [step,         setStep]         = useState(() => localStorage.getItem("belvu_sq_token") ? "map" : "token");
+  const [showToken,    setShowToken]    = useState(false);
+  const [tokenInput,   setTokenInput]   = useState("");
+  const [locInput,     setLocInput]     = useState(() => localStorage.getItem("belvu_sq_loc") || "");
+  const [sqMembers,    setSqMembers]    = useState([]);
+  const [fetchingTeam, setFetchingTeam] = useState(false);
+  const [fetchError,   setFetchError]   = useState("");
+  const [publishing,   setPublishing]   = useState(false);
+  const [pubResult,    setPubResult]    = useState(null);
+  const [copied,       setCopied]       = useState(false);
+
+  const totalStaff = new Set(shifts.map(s => s.staffId)).size;
+  const parseHrs = (t) => {
+    const [time, ampm] = t.split(" ");
+    let [h, m] = time.split(":").map(Number);
+    if (ampm === "PM" && h !== 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    return h + m / 60;
   };
-  const saveKey = () => {
-    if (!squareKey.trim()) return;
-    localStorage.setItem("belvu_sq_key", squareKey.trim());
-    setKeySaved(true);
-  };
-  const clearKey = () => {
-    localStorage.removeItem("belvu_sq_key");
-    setSquareKey("");
-    setKeySaved(false);
+  const totalHrs = shifts.reduce((sum, sh) => sum + Math.max(0, parseHrs(sh.end) - parseHrs(sh.start)), 0);
+  const hrsLabel = `${Math.floor(totalHrs)}h ${Math.round((totalHrs % 1) * 60)}m`;
+
+  const toISO = (dayShort, timeStr) => {
+    const di   = DAY_SHORT.indexOf(dayShort);
+    const date = weekDates[di];
+    const ds   = date.toISOString().split("T")[0];
+    const [time, ampm] = timeStr.split(" ");
+    let [h, m] = time.split(":").map(Number);
+    if (ampm === "PM" && h !== 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    return `${ds}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`;
   };
 
-  const buildShiftPayloads = useCallback(() => {
-    return shifts.map(sh => {
-      const di = DAY_SHORT.indexOf(sh.day);
-      if(di===-1) return null;
-      const date = getWeekDates(weekOffset)[di];
-      const dateStr = date.toISOString().split("T")[0];
-      const parseTime = (t) => {
-        const [time, ampm] = t.split(" ");
-        let [h, m] = time.split(":").map(Number);
-        if(ampm==="PM" && h!==12) h+=12;
-        if(ampm==="AM" && h===12) h=0;
-        return `${dateStr}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`;
-      };
-      return {
-        shiftId: sh.id,
-        staffName: staffById[sh.staffId]?.name,
-        start: parseTime(sh.start),
-        end: parseTime(sh.end),
-        location: sh.location,
-        role: sh.role || staffById[sh.staffId]?.role
-      };
-    }).filter(Boolean);
-  }, [shifts, weekOffset]);
+  // ── Step 1: Save token + location ────────────────────────────────────────
+  const saveToken = () => {
+    const t = tokenInput.trim();
+    const l = locInput.trim();
+    if (!t) return;
+    localStorage.setItem("belvu_sq_token", t);
+    if (l) localStorage.setItem("belvu_sq_loc", l);
+    setToken(t);
+    setLocationId(l);
+    setStep("fetch");
+  };
 
-  const handleSquarePublish = async () => {
-    setSquareLoading(true);
-    setSquareStatus(null);
-    setSquareError("");
+  const clearAll = () => {
+    ["belvu_sq_token","belvu_sq_loc","belvu_sq_map"].forEach(k => localStorage.removeItem(k));
+    setToken(""); setLocationId(""); setMapping({});
+    setTokenInput(""); setLocInput(""); setSqMembers([]);
+    setStep("token"); setPubResult(null);
+  };
+
+  // ── Step 2: Fetch Square team members ────────────────────────────────────
+  const fetchTeam = async () => {
+    setFetchingTeam(true);
+    setFetchError("");
     try {
-      const payloads = buildShiftPayloads();
-      const results = await Promise.allSettled(
-        payloads.map(p =>
-          fetch("https://connect.squareup.com/v2/labor/scheduled-shifts", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${squareKey}`,
-              "Content-Type": "application/json",
-              "Square-Version": "2025-05-21"
-            },
-            body: JSON.stringify({
-              idempotency_key: p.shiftId,
-              scheduled_shift: {
-                draft_shift_details: {
-                  title: p.role,
-                  start_at: p.start,
-                  end_at: p.end,
-                  notes: `${p.staffName} @ ${p.location}`
-                }
-              }
-            })
-          }).then(r => r.json())
-        )
-      );
-      const failed = results.filter(r=>r.status==="rejected"||(r.value?.errors?.length>0));
-      if(failed.length===0) setSquareStatus("success");
-      else {
-        setSquareStatus("error");
-        setSquareError(`${failed.length} of ${payloads.length} shifts failed. Check token has TIMECARDS_WRITE permission.`);
-      }
-    } catch(e) {
-      setSquareStatus("error");
-      setSquareError(e.message||"Network error");
+      const body = locationId ? { location_ids: [locationId] } : {};
+      const res  = await fetch("https://connect.squareup.com/v2/team-members/search", {
+        method: "POST",
+        headers: {
+          "Authorization":  `Bearer ${token}`,
+          "Content-Type":   "application/json",
+          "Square-Version": "2025-05-21",
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.errors) throw new Error(data.errors[0]?.detail || "Square API error");
+      const members = (data.team_members || [])
+        .filter(m => m.status === "ACTIVE")
+        .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
+      setSqMembers(members);
+      setStep("map");
+    } catch (e) {
+      setFetchError(e.message || "Failed to fetch team — check token & permissions");
     }
-    setSquareLoading(false);
+    setFetchingTeam(false);
   };
 
-  // Fallback copy summary
-  const summary = useMemo(()=>{
-    const lines=[`BELVU ROSTER — ${fmtDate(weekDates[0])} to ${fmtDate(weekDates[6])}\n`];
-    DAYS.forEach((day,i)=>{
-      const ds=DAY_SHORT[i];
-      const dayShifts=shifts.filter(s=>s.day===ds).sort((a,b)=>a.start.localeCompare(b.start));
-      if(!dayShifts.length) return;
+  // ── Step 3: Save mapping ──────────────────────────────────────────────────
+  const saveMapping = (belvuId, sqId) => {
+    const next = { ...mapping, [belvuId]: sqId };
+    setMapping(next);
+    localStorage.setItem("belvu_sq_map", JSON.stringify(next));
+  };
+
+  const mappedCount   = activeStaff.filter(s => mapping[s.id]).length;
+  const mappedShifts  = shifts.filter(sh => mapping[sh.staffId]).length;
+  const skippedShifts = shifts.length - mappedShifts;
+
+  // ── Step 4: Publish ───────────────────────────────────────────────────────
+  const publish = async () => {
+    setPublishing(true);
+    setPubResult(null);
+    const failed = [];
+    let ok = 0;
+    for (const sh of shifts) {
+      const sqId = mapping[sh.staffId];
+      if (!sqId) continue; // silently skip unmapped
+      try {
+        const res = await fetch("https://connect.squareup.com/v2/labor/scheduled-shifts", {
+          method: "POST",
+          headers: {
+            "Authorization":  `Bearer ${token}`,
+            "Content-Type":   "application/json",
+            "Square-Version": "2025-05-21",
+          },
+          body: JSON.stringify({
+            idempotency_key: `belvu-${sh.id}-${weekOffset}`,
+            scheduled_shift: {
+              draft_shift_details: {
+                team_member_id: sqId,
+                location_id:    locationId || undefined,
+                start_at:       toISO(sh.day, sh.start),
+                end_at:         toISO(sh.day, sh.end),
+                notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
+              },
+            },
+          }),
+        });
+        const data = await res.json();
+        if (data.errors?.length) failed.push({ sh, reason: data.errors[0]?.detail });
+        else ok++;
+      } catch (e) {
+        failed.push({ sh, reason: e.message });
+      }
+    }
+    setPubResult({ ok, failed });
+    setPublishing(false);
+  };
+
+  // ── Copy text summary ─────────────────────────────────────────────────────
+  const summary = useMemo(() => {
+    const lines = [`BELVU ROSTER — ${fmtDate(weekDates[0])} to ${fmtDate(weekDates[6])}\n`];
+    DAYS.forEach((day, i) => {
+      const ds        = DAY_SHORT[i];
+      const dayShifts = shifts.filter(s => s.day === ds).sort((a,b) => a.start.localeCompare(b.start));
+      if (!dayShifts.length) return;
       lines.push(`\n${day.toUpperCase()}:`);
-      LOCATIONS.forEach(loc=>{
-        const ls=dayShifts.filter(s=>s.location===loc);
-        if(!ls.length) return;
+      LOCATIONS.forEach(loc => {
+        const ls = dayShifts.filter(s => s.location === loc);
+        if (!ls.length) return;
         lines.push(`  ${loc}:`);
-        ls.forEach(sh=>{ const s=staffById[sh.staffId]; lines.push(`    ${s?.name} (${s?.role}) ${sh.start}–${sh.end}`); });
+        ls.forEach(sh => {
+          const s = staffById[sh.staffId];
+          lines.push(`    ${s?.name} (${s?.role}) ${sh.start}–${sh.end}`);
+        });
       });
     });
     return lines.join("\n");
-  },[shifts,weekOffset]);
+  }, [shifts, weekOffset]);
 
-  const copy = ()=>{ navigator.clipboard.writeText(summary); setCopied(true); setTimeout(()=>setCopied(false),3000); };
+  const copy = () => { navigator.clipboard.writeText(summary); setCopied(true); setTimeout(() => setCopied(false), 3000); };
+
+  // ── Shared styles ─────────────────────────────────────────────────────────
+  const card  = { background:"#0d1117", border:"1px solid #1e293b", borderRadius:14, padding:18, marginBottom:14 };
+  const lbl   = { fontSize:9, color:"#475569", fontFamily:"'DM Mono',monospace", letterSpacing:1, marginBottom:6 };
+  const inp   = { width:"100%", background:"#060d18", border:"1px solid #1e293b", borderRadius:8,
+                  padding:"10px 12px", color:"#e2e8f0", fontSize:12, fontFamily:"'DM Mono',monospace",
+                  outline:"none", boxSizing:"border-box" };
+  const bigBtn = (active) => ({
+    width:"100%", padding:"13px 0", borderRadius:10, border:"none",
+    cursor: active ? "pointer" : "default",
+    background: active ? "linear-gradient(135deg,#7c3aed,#6d28d9)" : "#0f172a",
+    color: active ? "#fff" : "#334155",
+    fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700,
+    boxShadow: active ? "0 4px 18px rgba(124,58,237,.35)" : "none",
+    transition:"all .2s",
+  });
+
+  const STEPS = ["token","fetch","map","publish"];
+  const stepIdx = STEPS.indexOf(step);
 
   return (
-    <div style={{minHeight:"100vh",background:"#09090f",display:"flex",flexDirection:"column"}}>
-      <div style={{background:"#0d1117",borderBottom:"1px solid #1e293b",padding:"14px 18px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+    <div style={{minHeight:"100vh", background:"#09090f", display:"flex", flexDirection:"column"}}>
+
+      {/* Header */}
+      <div style={{background:"#0d1117", borderBottom:"1px solid #1e293b", padding:"14px 18px", display:"flex", alignItems:"center", gap:12, flexShrink:0}}>
         <button onClick={onBack} style={{background:"#1e293b",border:"none",borderRadius:9,padding:"7px 12px",color:"#94a3b8",fontSize:16,cursor:"pointer"}}>‹</button>
-        <div style={{flex:1,fontSize:17,fontWeight:700,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif"}}>Publish Roster</div>
+        <div style={{flex:1, fontSize:17, fontWeight:700, color:"#f1f5f9", fontFamily:"'DM Sans',sans-serif"}}>Publish Roster</div>
+        {token && (
+          <button onClick={clearAll} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"5px 10px",color:"#64748b",fontSize:10,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>
+            Reset
+          </button>
+        )}
       </div>
 
-      <div className="no-print" style={{flex:1,overflowY:"auto",padding:"18px 16px 32px"}}>
+      <div style={{flex:1, overflowY:"auto", padding:"18px 16px 40px"}}>
 
-        {/* Stats */}
-        {(()=>{
-          const parseHrs = (t) => {
-            const [time, ampm] = t.split(" ");
-            let [h, m] = time.split(":").map(Number);
-            if(ampm==="PM" && h!==12) h+=12;
-            if(ampm==="AM" && h===12) h=0;
-            return h + m/60;
-          };
-          const totalHrs = shifts.reduce((sum, sh) => {
-            const s = parseHrs(sh.start), e = parseHrs(sh.end);
-            return sum + Math.max(0, e - s);
-          }, 0);
-          const hrsLabel = Number.isInteger(totalHrs) ? `${totalHrs}h` : `${Math.floor(totalHrs)}h ${Math.round((totalHrs%1)*60)}m`;
-          return (
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:20}}>
-              {[
-                {l:"Shifts", v:shifts.length,  c:"#94a3b8"},
-                {l:"Staff",  v:totalStaff,     c:CA},
-                {l:"Hours",  v:hrsLabel,       c:"#f97316"},
-              ].map(st=>(
-                <div key={st.l} style={{background:"#12121e",border:"1px solid #1e293b",borderRadius:12,padding:"13px 10px",textAlign:"center"}}>
-                  <div style={{fontSize:st.l==="Hours"?18:22,fontWeight:700,color:st.c,fontFamily:"'DM Sans',sans-serif",lineHeight:1.2}}>{st.v}</div>
-                  <div style={{fontSize:9,color:"#475569",fontFamily:"'DM Mono',monospace",marginTop:2}}>{st.l}</div>
-                </div>
-              ))}
+        {/* Stats row */}
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20}}>
+          {[{l:"Shifts",v:shifts.length,c:"#94a3b8"},{l:"Staff",v:totalStaff,c:CA},{l:"Hours",v:hrsLabel,c:"#f97316"}].map(st=>(
+            <div key={st.l} style={{background:"#12121e",border:"1px solid #1e293b",borderRadius:12,padding:"13px 10px",textAlign:"center"}}>
+              <div style={{fontSize:st.l==="Hours"?18:22,fontWeight:700,color:st.c,fontFamily:"'DM Sans',sans-serif",lineHeight:1.2}}>{st.v}</div>
+              <div style={{fontSize:9,color:"#475569",fontFamily:"'DM Mono',monospace",marginTop:2}}>{st.l}</div>
             </div>
-          );
-        })()}
-
-        {/* Square publish card */}
-        <div style={{background:"#0d1f2d",border:`1px solid ${keySaved?"#1d4ed8":"#1e293b"}`,borderRadius:16,padding:20,marginBottom:14}}>
-
-          {/* Header */}
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#60a5fa",fontFamily:"'DM Sans',sans-serif"}}>🔗 Publish to Square</div>
-            {keySaved && (
-              <span style={{fontSize:10,background:"#052e16",color:"#4ade80",padding:"2px 8px",borderRadius:20,fontFamily:"'DM Mono',monospace"}}>
-                Token saved ✓
-              </span>
-            )}
-            {squareStatus==="success" && <span style={{fontSize:10,background:"#052e16",color:"#4ade80",padding:"2px 8px",borderRadius:20,fontFamily:"'DM Mono',monospace"}}>✓ Published</span>}
-            {squareStatus==="error"   && <span style={{fontSize:10,background:"#450a0a",color:"#f87171",padding:"2px 8px",borderRadius:20,fontFamily:"'DM Mono',monospace"}}>✗ Failed</span>}
-          </div>
-
-          {/* Token section — compact when saved */}
-          {keySaved ? (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#060f1a",borderRadius:9,padding:"10px 14px",marginBottom:14}}>
-              <div>
-                <div style={{fontSize:10,color:"#4ade80",fontFamily:"'DM Mono',monospace",marginBottom:2}}>Access token connected</div>
-                <div style={{fontSize:11,color:"#475569",fontFamily:"'DM Mono',monospace"}}>{"•".repeat(12)} {squareKey.slice(-4)}</div>
-              </div>
-              <button onClick={clearKey} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"5px 10px",color:"#64748b",fontSize:10,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Change</button>
-            </div>
-          ) : (
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:"#475569",fontFamily:"'DM Mono',monospace",letterSpacing:1,marginBottom:6}}>SQUARE ACCESS TOKEN</div>
-              <div style={{position:"relative",marginBottom:8}}>
-                <input
-                  type={showKey?"text":"password"}
-                  value={squareKey}
-                  onChange={e=>handleKeyChange(e.target.value)}
-                  placeholder="EAAAl… paste your token here"
-                  style={{width:"100%",background:"#060f1a",border:"1px solid #1d4ed8",borderRadius:9,padding:"10px 44px 10px 12px",color:"#e2e8f0",fontSize:12,fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box"}}
-                />
-                <button onClick={()=>setShowKey(s=>!s)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:11,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>{showKey?"hide":"show"}</button>
-              </div>
-              <button onClick={saveKey} disabled={!squareKey.trim()} style={{width:"100%",padding:"9px 0",background:squareKey.trim()?"#1d4ed8":"#0f172a",border:"none",borderRadius:8,color:squareKey.trim()?"#fff":"#334155",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:squareKey.trim()?"pointer":"default",transition:"all .2s"}}>
-                Save token for next time →
-              </button>
-              <div style={{fontSize:9,color:"#334155",fontFamily:"'DM Mono',monospace",marginTop:6,lineHeight:1.6}}>
-                Square Developer Console → Credentials → Access Token. Saved locally on this device only.
-              </div>
-            </div>
-          )}
-
-          {/* How it works — only show when not yet published */}
-          {squareStatus!=="success" && (
-            <div style={{background:"#060f1a",borderRadius:8,padding:10,marginBottom:14,fontSize:10,color:"#475569",fontFamily:"'DM Mono',monospace",lineHeight:1.9}}>
-              <div>Shifts are sent as <span style={{color:"#60a5fa"}}>drafts</span> via Square Labor API</div>
-              <div>Review & publish them in Square to notify staff</div>
-            </div>
-          )}
-
-          {/* Publish button */}
-          <button
-            onClick={handleSquarePublish}
-            disabled={!squareKey||squareLoading}
-            style={{
-              width:"100%",padding:"14px 0",
-              background:squareKey&&!squareLoading?"linear-gradient(135deg,#1d4ed8,#1e40af)":"#0f172a",
-              border:`1px solid ${squareKey?"#1d4ed8":"#1e293b"}`,
-              borderRadius:12,color:squareKey?"#fff":"#334155",
-              fontFamily:"'DM Sans',sans-serif",fontSize:15,fontWeight:700,
-              cursor:squareKey&&!squareLoading?"pointer":"default",
-              transition:"all .2s",opacity:squareLoading?.7:1,
-              boxShadow:squareKey?"0 4px 20px rgba(29,78,216,.35)":"none"
-            }}
-          >
-            {squareLoading ? "Sending shifts to Square…" : squareStatus==="success" ? "✓ Sent to Square" : `Publish ${shifts.length} shifts to Square →`}
-          </button>
-
-          {squareStatus==="success" && (
-            <div style={{marginTop:12,padding:12,background:"#052e16",borderRadius:9,fontSize:11,color:"#4ade80",fontFamily:"'DM Mono',monospace",lineHeight:1.8}}>
-              ✓ All {shifts.length} shifts sent as drafts. Open Square Scheduling → review → Publish to notify staff.
-            </div>
-          )}
-          {squareStatus==="error" && (
-            <div style={{marginTop:12,padding:12,background:"#450a0a",borderRadius:9,fontSize:11,color:"#f87171",fontFamily:"'DM Mono',monospace",lineHeight:1.8}}>
-              ✗ {squareError}
-            </div>
-          )}
+          ))}
         </div>
 
-        {/* Export — download as .html file (works on mobile Safari via share sheet) */}
-        <button onClick={()=>{
-          const sById = makeStaffById(staff||INITIAL_STAFF);
-          const weekDates = getWeekDates(weekOffset);
-          const fmtD = (d) => d.toLocaleDateString("en-AU",{day:"numeric",month:"short"});
-          let rows = "";
-          DAY_SHORT.forEach((ds,di)=>{
-            const dayShifts = shifts.filter(s=>s.day===ds);
-            if(!dayShifts.length) return;
-            rows += `<div class='day'><div class='day-title'>${DAYS[di]} — ${fmtD(weekDates[di])}</div>`;
-            LOCATIONS.forEach(loc=>{
-              const ls = dayShifts.filter(s=>s.location===loc).sort((a,b)=>a.start.localeCompare(b.start));
-              if(!ls.length) return;
-              rows += `<div class='loc-label'>${loc}</div><table><tbody>`;
-              ls.forEach(sh=>{
-                const st = sById[sh.staffId];
-                if(!st) return;
-                rows += `<tr><td class='name'>${st.name}</td><td class='role'>${st.role}</td><td class='time'>${sh.start} – ${sh.end}</td></tr>`;
-              });
-              rows += `</tbody></table>`;
-            });
-            rows += `</div>`;
-          });
-          const weekLabel = fmtD(weekDates[0]).replace(/ /g,'-') + '_' + fmtD(weekDates[6]).replace(/ /g,'-');
-          const html = [
-            '<!DOCTYPE html><html><head><meta charset="utf-8">',
-            '<meta name="viewport" content="width=device-width,initial-scale=1">',
-            '<title>Belvu Roster ' + weekLabel + '</title>',
-            '<style>',
-            '*{margin:0;padding:0;box-sizing:border-box}',
-            'body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#111;padding:28px 24px;font-size:13px;max-width:680px;margin:0 auto}',
-            'h1{font-size:20px;font-weight:700;margin-bottom:3px}',
-            '.sub{color:#666;font-size:11px;margin-bottom:20px}',
-            '.day{margin-bottom:20px;break-inside:avoid}',
-            '.day-title{font-size:13px;font-weight:700;background:#f1f5f9;padding:5px 10px;border-radius:4px;margin-bottom:7px}',
-            '.loc-label{font-size:9px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:1.2px;padding:0 4px;margin:5px 0 2px}',
-            'table{width:100%;border-collapse:collapse;margin-bottom:4px}',
-            'tr{border-bottom:1px solid #e8ecf0}',
-            'td{padding:5px 6px;font-size:12px}',
-            '.name{font-weight:600;width:34%}',
-            '.role{color:#555;width:36%}',
-            '.time{color:#444;width:30%;white-space:nowrap}',
-            '@media print{body{padding:16px}button{display:none}}',
-            '</style></head><body>',
-            '<h1>Belvu Roster</h1>',
-            '<div class="sub">Week of ' + fmtD(weekDates[0]) + ' – ' + fmtD(weekDates[6]) + ' &nbsp;·&nbsp; ' + new Date().toLocaleDateString('en-AU') + '</div>',
-            rows,
-            '<br><button onclick="window.print()" style="margin-top:12px;padding:10px 20px;background:#111;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">🖨 Print / Save as PDF</button>',
-            '</body></html>'
-          ].join('');
-          // data: URI works inside sandboxed iframes where Blob URLs are blocked
-          const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-          const a = document.createElement('a');
-          a.href = encoded;
-          a.download = 'Belvu-Roster-' + weekLabel + '.html';
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(()=>document.body.removeChild(a), 500);
-        }} style={{width:"100%",padding:13,background:"#111827",border:"1px solid #f9731644",borderRadius:12,color:"#fb923c",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
-          <span>⎙</span><span>Download Roster</span>
+        {/* Step indicator */}
+        <div style={{display:"flex", gap:5, marginBottom:20, alignItems:"center"}}>
+          {[["token","1 Token"],["fetch","2 Fetch"],["map","3 Map"],["publish","4 Send"]].map(([s,lbl],i,arr)=>(
+            <React.Fragment key={s}>
+              <div style={{
+                padding:"4px 10px", borderRadius:20, fontSize:10,
+                fontFamily:"'DM Mono',monospace", whiteSpace:"nowrap",
+                background: step===s ? "#4c1d95" : stepIdx>i ? "#052e16" : "#0f172a",
+                color:      step===s ? "#c4b5fd" : stepIdx>i ? "#4ade80" : "#334155",
+                border:     `1px solid ${step===s?"#7c3aed":stepIdx>i?"#14532d":"#1e293b"}`,
+                cursor:     stepIdx>i ? "pointer" : "default",
+              }} onClick={()=>{ if(stepIdx>i) setStep(s); }}>{lbl}</div>
+              {i<arr.length-1 && <div style={{flex:1,height:1,background:"#1e293b"}}/>}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* ── STEP 1: TOKEN ─────────────────────────────────────────────── */}
+        {step==="token" && (
+          <div style={card}>
+            <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>🔗 Connect Square</div>
+            <div style={{fontSize:11,color:"#64748b",fontFamily:"'DM Mono',monospace",marginBottom:16,lineHeight:1.7}}>
+              developer.squareup.com → your app → Credentials → Production Access Token
+            </div>
+
+            <div style={{marginBottom:12}}>
+              <div style={lbl}>ACCESS TOKEN</div>
+              <div style={{position:"relative"}}>
+                <input type={showToken?"text":"password"} value={tokenInput}
+                  onChange={e=>setTokenInput(e.target.value)}
+                  placeholder="EAAAl…"
+                  style={{...inp, paddingRight:52}}
+                />
+                <button onClick={()=>setShowToken(s=>!s)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:11,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>
+                  {showToken?"hide":"show"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{marginBottom:18}}>
+              <div style={lbl}>LOCATION ID <span style={{color:"#334155",textTransform:"none",letterSpacing:0}}>(recommended)</span></div>
+              <input value={locInput} onChange={e=>setLocInput(e.target.value)}
+                placeholder="LxxxxxxxxxxxxxxxxX"
+                style={inp}
+              />
+              <div style={{fontSize:9,color:"#334155",fontFamily:"'DM Mono',monospace",marginTop:5,lineHeight:1.7}}>
+                Square Dashboard → Account & Settings → Locations → copy the ID
+              </div>
+            </div>
+
+            <button onClick={saveToken} disabled={!tokenInput.trim()} style={bigBtn(!!tokenInput.trim())}>
+              Save & Fetch Team →
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 2: FETCH ─────────────────────────────────────────────── */}
+        {step==="fetch" && (
+          <div style={card}>
+            <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>
+              Fetch Square Team
+            </div>
+            <div style={{fontSize:11,color:"#64748b",fontFamily:"'DM Mono',monospace",marginBottom:14,lineHeight:1.7}}>
+              Token: ••••{token.slice(-4)}{locationId?`  ·  Location: …${locationId.slice(-6)}`:""}
+            </div>
+            {fetchError && (
+              <div style={{background:"#450a0a",borderRadius:8,padding:10,marginBottom:14,fontSize:11,color:"#f87171",fontFamily:"'DM Mono',monospace",lineHeight:1.6}}>
+                ✗ {fetchError}
+              </div>
+            )}
+            <button onClick={fetchTeam} disabled={fetchingTeam} style={bigBtn(!fetchingTeam)}>
+              {fetchingTeam ? "Fetching team members…" : "Fetch Team Members →"}
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 3: MAP ───────────────────────────────────────────────── */}
+        {step==="map" && (
+          <div style={card}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif"}}>Map Staff → Square</div>
+              <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:mappedCount===activeStaff.length?"#4ade80":"#f97316"}}>
+                {mappedCount}/{activeStaff.length} mapped
+              </div>
+            </div>
+            <div style={{fontSize:11,color:"#475569",fontFamily:"'DM Mono',monospace",marginBottom:14,lineHeight:1.7}}>
+              Match each Belvu staff member to their Square account
+            </div>
+
+            {sqMembers.length===0 ? (
+              <>
+                {fetchError && <div style={{background:"#450a0a",borderRadius:8,padding:10,marginBottom:12,fontSize:11,color:"#f87171",fontFamily:"'DM Mono',monospace"}}>{fetchError}</div>}
+                <button onClick={fetchTeam} disabled={fetchingTeam} style={bigBtn(!fetchingTeam)}>
+                  {fetchingTeam?"Fetching…":"Fetch Team from Square →"}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
+                  {activeStaff.map(s=>(
+                    <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,background:"#060d18",borderRadius:9,padding:"8px 10px",border:`1px solid ${mapping[s.id]?"#4c1d95":"#0f172a"}`}}>
+                      <Avatar name={s.name} type={s.type} size={30} staffId={s.id} picOverride={s.pic}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.name}</div>
+                        <div style={{fontSize:10,color:"#475569",fontFamily:"'DM Mono',monospace"}}>{s.role}</div>
+                      </div>
+                      <select
+                        value={mapping[s.id]||""}
+                        onChange={e=>saveMapping(s.id, e.target.value)}
+                        style={{background:"#0f172a",border:`1px solid ${mapping[s.id]?"#7c3aed":"#1e293b"}`,borderRadius:7,padding:"6px 8px",color:mapping[s.id]?"#c4b5fd":"#475569",fontSize:10,fontFamily:"'DM Mono',monospace",outline:"none",maxWidth:150,cursor:"pointer"}}
+                      >
+                        <option value="">— select —</option>
+                        {sqMembers.map(m=>(
+                          <option key={m.id} value={m.id}>{m.display_name||`${m.given_name||""} ${m.family_name||""}`.trim()||m.id}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>setStep("publish")} disabled={mappedCount===0} style={bigBtn(mappedCount>0)}>
+                  {mappedCount===0?"Map at least one staff member":`Continue → ${mappedShifts} shifts ready`}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── STEP 4: PUBLISH ───────────────────────────────────────────── */}
+        {step==="publish" && (
+          <div style={card}>
+            <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>
+              🚀 Publish to Square
+            </div>
+
+            {!pubResult ? (
+              <>
+                <div style={{background:"#060d18",borderRadius:9,padding:12,marginBottom:16,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:2}}>
+                  <div style={{color:"#94a3b8"}}>
+                    <span style={{color:"#c4b5fd",fontWeight:700}}>{mappedShifts}</span> shifts will be sent as{" "}
+                    <span style={{color:"#60a5fa"}}>drafts</span>
+                  </div>
+                  {skippedShifts>0 && <div style={{color:"#f97316"}}>{skippedShifts} shifts skipped — staff not mapped</div>}
+                  <div style={{color:"#334155",marginTop:2}}>Review & publish in Square Scheduling to notify staff</div>
+                </div>
+                <button onClick={publish} disabled={publishing||mappedShifts===0} style={bigBtn(!publishing&&mappedShifts>0)}>
+                  {publishing ? "Sending to Square…" : `Publish ${mappedShifts} shifts →`}
+                </button>
+                <button onClick={()=>setStep("map")} style={{width:"100%",marginTop:8,padding:"10px 0",background:"none",border:"1px solid #1e293b",borderRadius:10,color:"#475569",fontFamily:"'DM Mono',monospace",fontSize:11,cursor:"pointer"}}>
+                  ← Edit mappings
+                </button>
+              </>
+            ) : (
+              <>
+                {pubResult.failed.length===0 ? (
+                  <div style={{background:"#052e16",borderRadius:10,padding:16,marginBottom:14}}>
+                    <div style={{fontSize:15,fontWeight:700,color:"#4ade80",fontFamily:"'DM Sans',sans-serif",marginBottom:6}}>✓ All shifts published!</div>
+                    <div style={{fontSize:11,color:"#86efac",fontFamily:"'DM Mono',monospace",lineHeight:1.9}}>
+                      {pubResult.ok} shifts sent as drafts.<br/>
+                      Open Square Scheduling → review → Publish to notify staff.
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {pubResult.ok>0 && (
+                      <div style={{background:"#052e16",borderRadius:9,padding:10,marginBottom:10,fontSize:12,color:"#4ade80",fontFamily:"'DM Mono',monospace"}}>
+                        ✓ {pubResult.ok} shifts sent successfully
+                      </div>
+                    )}
+                    <div style={{background:"#450a0a",borderRadius:10,padding:12,marginBottom:14}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"#f87171",fontFamily:"'DM Sans',sans-serif",marginBottom:8}}>
+                        ✗ {pubResult.failed.length} shifts failed
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:160,overflowY:"auto"}}>
+                        {pubResult.failed.map(({sh,reason},i)=>{
+                          const s = staffById[sh.staffId];
+                          return <div key={i} style={{fontSize:10,color:"#fca5a5",fontFamily:"'DM Mono',monospace",lineHeight:1.6}}>{s?.name} · {sh.day} {sh.start} — {reason}</div>;
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+                <button onClick={()=>{ setPubResult(null); publish(); }} disabled={publishing} style={bigBtn(!publishing)}>
+                  {publishing?"Retrying…":"Retry failed shifts →"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── COPY TEXT ─────────────────────────────────────────────────── */}
+        <button onClick={copy} style={{width:"100%",padding:13,background:"#12121e",border:"1px solid #1e293b",borderRadius:12,color:copied?"#4ade80":"#64748b",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer",transition:"all .2s",marginBottom:10}}>
+          {copied?"✓ Copied to clipboard":"Copy roster as text"}
         </button>
+
+        {/* ── DOWNLOAD HTML ─────────────────────────────────────────────── */}
+        {(()=>{
+          const sById = makeStaffById(staff||INITIAL_STAFF);
+          const fmtD  = (d) => d.toLocaleDateString("en-AU",{day:"numeric",month:"short"});
+          return (
+            <button onClick={()=>{
+              let rows = "";
+              DAY_SHORT.forEach((ds,di)=>{
+                const dayShifts = shifts.filter(s=>s.day===ds);
+                if(!dayShifts.length) return;
+                rows += `<div class='day'><div class='day-title'>${DAYS[di]} — ${fmtD(weekDates[di])}</div>`;
+                LOCATIONS.forEach(loc=>{
+                  const ls = dayShifts.filter(s=>s.location===loc).sort((a,b)=>a.start.localeCompare(b.start));
+                  if(!ls.length) return;
+                  rows += `<div class='loc-label'>${loc}</div><table><tbody>`;
+                  ls.forEach(sh=>{
+                    const st = sById[sh.staffId];
+                    if(!st) return;
+                    rows += `<tr><td class='name'>${st.name}</td><td class='role'>${st.role}</td><td class='time'>${sh.start} – ${sh.end}</td></tr>`;
+                  });
+                  rows += `</tbody></table>`;
+                });
+                rows += `</div>`;
+              });
+              const weekLabel = fmtD(weekDates[0]).replace(/ /g,"-")+"_"+fmtD(weekDates[6]).replace(/ /g,"-");
+              const html = [
+                '<!DOCTYPE html><html><head><meta charset="utf-8">',
+                '<meta name="viewport" content="width=device-width,initial-scale=1">',
+                `<title>Belvu Roster ${weekLabel}</title>`,
+                '<style>',
+                '*{margin:0;padding:0;box-sizing:border-box}',
+                'body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#111;padding:28px 24px;font-size:13px;max-width:680px;margin:0 auto}',
+                'h1{font-size:20px;font-weight:700;margin-bottom:3px}',
+                '.sub{color:#666;font-size:11px;margin-bottom:20px}',
+                '.day{margin-bottom:20px;break-inside:avoid}',
+                '.day-title{font-size:13px;font-weight:700;background:#f1f5f9;padding:5px 10px;border-radius:4px;margin-bottom:7px}',
+                '.loc-label{font-size:9px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:1.2px;padding:0 4px;margin:5px 0 2px}',
+                'table{width:100%;border-collapse:collapse;margin-bottom:4px}',
+                'tr{border-bottom:1px solid #e8ecf0}',
+                'td{padding:5px 6px;font-size:12px}',
+                '.name{font-weight:600;width:34%}',
+                '.role{color:#555;width:36%}',
+                '.time{color:#444;width:30%;white-space:nowrap}',
+                '@media print{body{padding:16px}button{display:none}}',
+                '</style></head><body>',
+                '<h1>Belvu Roster</h1>',
+                `<div class="sub">Week of ${fmtD(weekDates[0])} – ${fmtD(weekDates[6])} &nbsp;·&nbsp; ${new Date().toLocaleDateString("en-AU")}</div>`,
+                rows,
+                '<br><button onclick="window.print()" style="margin-top:12px;padding:10px 20px;background:#111;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">🖨 Print / Save as PDF</button>',
+                '</body></html>'
+              ].join("");
+              const encoded = "data:text/html;charset=utf-8,"+encodeURIComponent(html);
+              const a = document.createElement("a");
+              a.href = encoded; a.download = `Belvu-Roster-${weekLabel}.html`;
+              a.style.display = "none"; document.body.appendChild(a); a.click();
+              setTimeout(()=>document.body.removeChild(a),500);
+            }} style={{width:"100%",padding:13,background:"#111827",border:"1px solid #f9731644",borderRadius:12,color:"#fb923c",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
+              <span>⎙</span><span>Download Roster</span>
+            </button>
+          );
+        })()}
 
         <button onClick={onReset} style={{width:"100%",padding:13,background:"transparent",border:"1px dashed #1e293b",borderRadius:12,color:"#334155",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer"}}>
           Start new roster
         </button>
       </div>
 
-      {/* Print-only full roster */}
+      {/* Print-only roster */}
       {(()=>{
-        const staffById = makeStaffById(staff||INITIAL_STAFF);
+        const sById = makeStaffById(staff||INITIAL_STAFF);
         return (
           <div className="print-roster" style={{padding:32,background:"#fff",color:"#111",fontFamily:"sans-serif"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,borderBottom:"2px solid #111",paddingBottom:12}}>
@@ -2686,15 +2855,13 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                           <tbody>
                             {ls.sort((a,b)=>a.start.localeCompare(b.start)).map(sh=>{
-                              const st = staffById[sh.staffId];
+                              const st = sById[sh.staffId];
                               if(!st) return null;
-                              const avWarn = st.type!=="fulltime" && st.av && Object.keys(st.av).length>0 && !st.av[ds];
                               return (
                                 <tr key={sh.id} style={{borderBottom:"1px solid #e2e8f0"}}>
                                   <td style={{padding:"4px 8px",fontWeight:600}}>{st.name}</td>
                                   <td style={{padding:"4px 8px",color:"#555"}}>{st.role}</td>
                                   <td style={{padding:"4px 8px",color:"#555"}}>{sh.start} – {sh.end}</td>
-                                  {avWarn&&<td style={{padding:"4px 8px",color:"#b45309",fontWeight:600,fontSize:10}}>⚠ Avail conflict</td>}
                                 </tr>
                               );
                             })}
@@ -2712,7 +2879,6 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     </div>
   );
 }
-
 
 // ─── TEAM SCREEN ──────────────────────────────────────────────────────────────
 
