@@ -2357,6 +2357,11 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
   const weekDates = getWeekDates(weekOffset);
   const activeStaff = (staff || INITIAL_STAFF).filter(s => s.active !== false);
 
+  // ── One-time cleanup of stale job mapping key ────────────────────────────
+  React.useEffect(() => {
+    localStorage.removeItem("belvu_sq_jobs");
+  }, []);
+
   // ── Persisted state ──────────────────────────────────────────────────────
   const [token,      setToken]      = useState(() => localStorage.getItem("belvu_sq_token") || "");
   const [locationIds, setLocationIds] = useState(() => {
@@ -2503,7 +2508,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
               scheduled_shift: {
                 draft_shift_details: {
                   team_member_id: sqId,
-                  location_id:    locationIds[sh.location] || Object.values(locationIds)[0] || "",
+                  location_id:    locationIds[sh.location] || "",
 
                   start_at:       toISO(sh.day, sh.start),
                   end_at:         toISO(sh.day, sh.end),
@@ -2514,7 +2519,12 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
           }),
         });
         const data = await res.json();
-        if (data.errors?.length) failed.push({ sh, reason: data.errors[0]?.detail });
+        if (data.errors?.length) {
+          const reason = data.errors[0]?.detail || "Unknown error";
+          const locId = locationIds[sh.location];
+          const extra = !locId ? ` (location "${sh.location}" not mapped)` : "";
+          failed.push({ sh, reason: reason + extra });
+        }
         else ok++;
       } catch (e) {
         failed.push({ sh, reason: e.message });
