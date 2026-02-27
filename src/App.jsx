@@ -676,19 +676,26 @@ function Noodle({ n, fading, onDone }) {
 }
 
 function FallingNoodles({ fading }) {
-  const mkNoodle = (i, key, initialDelay) => ({
-    id: i, key,
-    left:     2 + Math.random() * 94,
-    startY:   initialDelay !== undefined ? -(initialDelay * 90) : -180,
-    duration: 3 + Math.random() * 2.5,
-    snakeDur: 0.3 + Math.random() * 0.25,
-    scale:    0.55 + Math.random() * 0.75,
-    amp:      5 + Math.random() * 6,
-    rotate:   (Math.random() * 30) - 15,
-    hue:      38 + Math.random() * 25,
-    sat:      68 + Math.random() * 18,
-    lit:      68 + Math.random() * 14,
-  });
+  const TOTAL = 20;
+  const mkNoodle = (i, key, initialDelay) => {
+    // Each noodle owns a fixed lane (evenly spaced), small jitter within lane
+    const laneW = 96 / TOTAL;
+    const laneCenter = 2 + (i % TOTAL) * laneW + laneW / 2;
+    const jitter = (Math.random() - 0.5) * laneW * 0.4;
+    return {
+      id: i, key,
+      left:     laneCenter + jitter,
+      startY:   initialDelay !== undefined ? -(initialDelay * 90) : -180,
+      duration: 3 + Math.random() * 2.5,
+      snakeDur: 0.3 + Math.random() * 0.25,
+      scale:    0.55 + Math.random() * 0.75,
+      amp:      5 + Math.random() * 6,
+      rotate:   (Math.random() * 20) - 10,
+      hue:      38 + Math.random() * 25,
+      sat:      68 + Math.random() * 18,
+      lit:      68 + Math.random() * 14,
+    };
+  };
 
   const [noodles, setNoodles] = React.useState(() =>
     Array.from({length: 20}, (_, i) => mkNoodle(i, i, i))
