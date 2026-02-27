@@ -95,9 +95,9 @@ const CASUAL_DEFAULTS = [
   { staffId:3,  day:"Sat", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   { staffId:3,  day:"Sun", start:"4:30 PM",  end:"9:00 PM",  location:"Nicks Thai" },
   // Bailey Coleman — 10am–10pm on available days
-  { staffId:6,  day:"Mon", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Tue", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
-  { staffId:6,  day:"Wed", start:"10:00 PM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Mon", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Tue", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
+  { staffId:6,  day:"Wed", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
   { staffId:6,  day:"Sat", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
   { staffId:6,  day:"Sun", start:"10:00 AM", end:"10:00 PM", location:"The Pit" },
   // Benny Coventry — 5–9pm Tue/Wed/Thu
@@ -2359,7 +2359,9 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
 
   // ── Persisted state ──────────────────────────────────────────────────────
   const [token,      setToken]      = useState(() => localStorage.getItem("belvu_sq_token") || "");
-  const [locationId, setLocationId] = useState(() => localStorage.getItem("belvu_sq_loc")   || "");
+  const [locationIds, setLocationIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("belvu_sq_locs") || "{}"); } catch { return {}; }
+  });
   const [mapping,    setMapping]    = useState(() => {
     try { return JSON.parse(localStorage.getItem("belvu_sq_map") || "{}"); } catch { return {}; }
   });
@@ -2368,7 +2370,9 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
   const [step,         setStep]         = useState(() => localStorage.getItem("belvu_sq_token") ? "map" : "token");
   const [showToken,    setShowToken]    = useState(false);
   const [tokenInput,   setTokenInput]   = useState("");
-  const [locInput,     setLocInput]     = useState(() => localStorage.getItem("belvu_sq_loc") || "");
+  const [locInputs,    setLocInputs]    = useState(() => {
+    try { return JSON.parse(localStorage.getItem("belvu_sq_locs") || "{}"); } catch { return {}; }
+  });
   const [sqMembers,    setSqMembers]    = useState([]);
   const [fetchingTeam, setFetchingTeam] = useState(false);
   const [fetchError,   setFetchError]   = useState("");
@@ -2401,19 +2405,18 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
   // ── Step 1: Save token + location ────────────────────────────────────────
   const saveToken = () => {
     const t = tokenInput.trim();
-    const l = locInput.trim();
     if (!t) return;
     localStorage.setItem("belvu_sq_token", t);
-    if (l) localStorage.setItem("belvu_sq_loc", l);
+    localStorage.setItem("belvu_sq_locs", JSON.stringify(locInputs));
     setToken(t);
-    setLocationId(l);
+    setLocationIds(locInputs);
     setStep("fetch");
   };
 
   const clearAll = () => {
-    ["belvu_sq_token","belvu_sq_loc","belvu_sq_map"].forEach(k => localStorage.removeItem(k));
-    setToken(""); setLocationId(""); setMapping({});
-    setTokenInput(""); setLocInput(""); setSqMembers([]);
+    ["belvu_sq_token","belvu_sq_locs","belvu_sq_map"].forEach(k => localStorage.removeItem(k));
+    setToken(""); setLocationIds({}); setMapping({});
+    setTokenInput(""); setLocInputs({}); setSqMembers([]);
     setStep("token"); setPubResult(null);
   };
 
@@ -2422,7 +2425,8 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     setFetchingTeam(true);
     setFetchError("");
     try {
-      const body = locationId ? { token, location_ids: [locationId] } : { token };
+      const uniqueLocs = [...new Set(Object.values(locationIds).filter(Boolean))];
+      const body = uniqueLocs.length ? { token, location_ids: uniqueLocs } : { token };
       const res  = await fetch("/api/square-team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2472,7 +2476,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
               scheduled_shift: {
                 draft_shift_details: {
                   team_member_id: sqId,
-                  location_id:    locationId || undefined,
+                  location_id:    locationIds[sh.location] || Object.values(locationIds)[0] || "",
                   start_at:       toISO(sh.day, sh.start),
                   end_at:         toISO(sh.day, sh.end),
                   notes:          `${staffById[sh.staffId]?.name || ""} @ ${sh.location}`,
@@ -2600,14 +2604,21 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
             </div>
 
             <div style={{marginBottom:18}}>
-              <div style={lbl}>LOCATION ID <span style={{color:"#334155",textTransform:"none",letterSpacing:0}}>(recommended)</span></div>
-              <input value={locInput} onChange={e=>setLocInput(e.target.value)}
-                placeholder="LxxxxxxxxxxxxxxxxX"
-                style={inp}
-              />
-              <div style={{fontSize:9,color:"#334155",fontFamily:"'DM Mono',monospace",marginTop:5,lineHeight:1.7}}>
-                Square Dashboard → Account & Settings → Locations → copy the ID
+              <div style={lbl}>LOCATION IDs</div>
+              <div style={{fontSize:9,color:"#334155",fontFamily:"'DM Mono',monospace",marginBottom:10,lineHeight:1.7}}>
+                Square Dashboard → Account & Settings → Locations → copy each ID
               </div>
+              {LOCATIONS.map(loc=>(
+                <div key={loc} style={{marginBottom:8}}>
+                  <div style={{fontSize:9,color:"#64748b",fontFamily:"'DM Mono',monospace",marginBottom:4}}>{loc.toUpperCase()}</div>
+                  <input
+                    value={locInputs[loc]||""}
+                    onChange={e=>setLocInputs(prev=>({...prev,[loc]:e.target.value}))}
+                    placeholder="LxxxxxxxxxxxxxxxxX"
+                    style={{...inp, borderColor: locInputs[loc]?"#7c3aed":"#1e293b"}}
+                  />
+                </div>
+              ))}
             </div>
 
             <button onClick={saveToken} disabled={!tokenInput.trim()} style={bigBtn(!!tokenInput.trim())}>
@@ -2623,7 +2634,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
               Fetch Square Team
             </div>
             <div style={{fontSize:11,color:"#64748b",fontFamily:"'DM Mono',monospace",marginBottom:14,lineHeight:1.7}}>
-              Token: ••••{token.slice(-4)}{locationId?`  ·  Location: …${locationId.slice(-6)}`:""}
+              Token: ••••{token.slice(-4)}{Object.keys(locationIds).length>0?`  ·  ${Object.keys(locationIds).length} locations`:""} 
             </div>
             {fetchError && (
               <div style={{background:"#450a0a",borderRadius:8,padding:10,marginBottom:14,fontSize:11,color:"#f87171",fontFamily:"'DM Mono',monospace",lineHeight:1.6}}>
@@ -2696,15 +2707,24 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
 
             {!pubResult ? (
               <>
+                {Object.keys(locationIds).length===0 && (
+                  <div style={{background:"#431407",border:"1px solid #c2410c",borderRadius:9,padding:12,marginBottom:14,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:1.8}}>
+                    <div style={{color:"#fb923c",fontWeight:700,marginBottom:2}}>⚠ Location IDs required</div>
+                    <div style={{color:"#fed7aa"}}>Hit Reset and re-enter your token with Location IDs mapped.</div>
+                  </div>
+                )}
                 <div style={{background:"#060d18",borderRadius:9,padding:12,marginBottom:16,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:2}}>
                   <div style={{color:"#94a3b8"}}>
                     <span style={{color:"#c4b5fd",fontWeight:700}}>{mappedShifts}</span> shifts will be sent as{" "}
                     <span style={{color:"#60a5fa"}}>drafts</span>
                   </div>
                   {skippedShifts>0 && <div style={{color:"#f97316"}}>{skippedShifts} shifts skipped — staff not mapped</div>}
+                  {Object.keys(locationIds).length>0 && LOCATIONS.map(l=>(
+                    <div key={l} style={{color:"#334155"}}>{l}: …{(locationIds[l]||"—").slice(-6)}</div>
+                  ))}
                   <div style={{color:"#334155",marginTop:2}}>Review & publish in Square Scheduling to notify staff</div>
                 </div>
-                <button onClick={publish} disabled={publishing||mappedShifts===0} style={bigBtn(!publishing&&mappedShifts>0)}>
+                <button onClick={publish} disabled={publishing||mappedShifts===0||Object.keys(locationIds).length===0} style={bigBtn(!publishing&&mappedShifts>0&&Object.keys(locationIds).length>0)}>
                   {publishing ? "Sending to Square…" : `Publish ${mappedShifts} shifts →`}
                 </button>
                 <button onClick={()=>setStep("map")} style={{width:"100%",marginTop:8,padding:"10px 0",background:"none",border:"1px solid #1e293b",borderRadius:10,color:"#475569",fontFamily:"'DM Mono',monospace",fontSize:11,cursor:"pointer"}}>
