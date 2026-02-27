@@ -2425,8 +2425,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     setFetchingTeam(true);
     setFetchError("");
     try {
-      const uniqueLocs = [...new Set(Object.values(locationIds).filter(Boolean))];
-      const body = uniqueLocs.length ? { token, location_ids: uniqueLocs } : { token };
+      const body = { token };
       const res  = await fetch("/api/square-team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
