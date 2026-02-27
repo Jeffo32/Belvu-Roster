@@ -2504,7 +2504,7 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
           body: JSON.stringify({
             token,
             shift: {
-              idempotency_key: `belvu-${weekOffset}-${sh.staffId}-${sh.day}-${sh.start.replace(/[^0-9]/g,"")}`,
+              idempotency_key: `bv2-${weekOffset}-${sh.staffId}-${sh.day}-${sh.start.replace(/[^0-9]/g,"")}`,
               scheduled_shift: {
                 draft_shift_details: {
                   team_member_id: sqId,
