@@ -2399,7 +2399,14 @@ function PublishScreen({ shifts, weekOffset, onBack, onReset, staff }) {
     let [h, m] = time.split(":").map(Number);
     if (ampm === "PM" && h !== 12) h += 12;
     if (ampm === "AM" && h === 12) h = 0;
-    return `${ds}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`;
+    // Build a local Date object then convert to RFC 3339 with timezone offset
+    const d = new Date(date);
+    d.setHours(h, m, 0, 0);
+    const off = -d.getTimezoneOffset();
+    const sign = off >= 0 ? "+" : "-";
+    const pad = n => String(Math.floor(Math.abs(n))).padStart(2,"0");
+    const offStr = `${sign}${pad(off/60)}:${pad(off%60)}`;
+    return `${ds}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00${offStr}`;
   };
 
   // ── Step 1: Save token + location ────────────────────────────────────────
