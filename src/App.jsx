@@ -575,35 +575,120 @@ function ShiftModal({ shift, staffId, day, lockStaff=false, onClose, onSave, sta
 }
 
 // ─── FALLING NOODLES ─────────────────────────────────────────────────────────
-function FallingNoodles({ fading }) {
-  const mkNoodle = (i, key, initialDelay) => {
-    const hue     = 38 + Math.random() * 25;
-    const sat     = 68 + Math.random() * 18;
-    const lit     = 68 + Math.random() * 14;
-    const amp     = 5  + Math.random() * 6;
-    const cx      = 10;
-    // Four phase-shifted paths for smooth snake undulation
-    const makePath = (ph) => {
-      const s = ph % 2 === 0 ? 1 : -1;
+// Individual noodle — uses rAF to animate path directly (cross-browser, no CSS d:path())
+function Noodle({ n, fading, onDone }) {
+  const pathRef   = React.useRef(null);
+  const wrapRef   = React.useRef(null);
+  const startTime = React.useRef(null);
+  const rafRef    = React.useRef(null);
+  const cx = 10;
+
+  React.useEffect(() => {
+    const fallDur  = n.duration * 1000;
+    const startY   = n.startY;
+    const amp      = n.amp;
+    const snakeSpd = n.snakeDur * 1000;
+
+    const makePath = (phase) => {
+      const a = amp * Math.sin(phase);
+      const b = amp * Math.sin(phase + Math.PI);
       return (
         `M${cx},0 ` +
-        `C${cx+amp*s},18 ${cx-amp*s},36 ${cx},54 ` +
-        `C${cx+amp*-s},72 ${cx-amp*-s},90 ${cx},108 ` +
-        `C${cx+amp*s},122 ${cx-amp*s},136 ${cx},148`
+        `C${cx+a},20 ${cx+b},40 ${cx},60 ` +
+        `C${cx+a},80 ${cx+b},100 ${cx},120 ` +
+        `C${cx+a},134 ${cx+b},146 ${cx},158`
       );
     };
-    const animName = `ns_${key}`;
-    return {
-      id: i, key,
-      left:     2 + Math.random() * 94,
-      startY:   initialDelay !== undefined ? -(initialDelay * 90) : -180,
-      duration: 3 + Math.random() * 2.5,
-      snakeDur: 0.3 + Math.random() * 0.25,
-      scale:    0.55 + Math.random() * 0.75,
-      hue, sat, lit, animName,
-      paths:    [makePath(0), makePath(1), makePath(2), makePath(3)],
+
+    const tick = (ts) => {
+      if (!startTime.current) startTime.current = ts;
+      const elapsed = ts - startTime.current;
+      const progress = Math.min(elapsed / fallDur, 1);
+
+      // Fall: ease-in translateY
+      const eased = progress * progress;
+      const y = startY + eased * (window.innerHeight * 1.15 - startY);
+
+      // Opacity: fade in at start, fade out at end
+      let opacity = 1;
+      if (progress < 0.08) opacity = progress / 0.08;
+      else if (progress > 0.82) opacity = 1 - (progress - 0.82) / 0.18;
+
+      if (wrapRef.current) {
+        wrapRef.current.style.transform = `translateY(${y}px)`;
+        wrapRef.current.style.opacity   = opacity;
+      }
+
+      // Snake wiggle via path morph
+      const phase = (elapsed / snakeSpd) * Math.PI * 2;
+      if (pathRef.current) {
+        pathRef.current.setAttribute("d", makePath(phase));
+      }
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        onDone();
+      }
     };
-  };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const color     = `hsl(${n.hue},${n.sat}%,${n.lit}%)`;
+  const colorDark = `hsl(${n.hue},${n.sat-10}%,${n.lit-10}%)`;
+  const colorHi   = `hsl(${n.hue},${n.sat}%,${Math.min(n.lit+22,94)}%)`;
+  const w = Math.round(22 * n.scale);
+  const h = Math.round(170 * n.scale);
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{
+        position: "absolute",
+        left:     n.left + "%",
+        top:      0,
+        opacity:  0,
+        transform:`translateY(${n.startY}px)`,
+        filter:   "drop-shadow(0 2px 3px rgba(0,0,0,0.22))",
+        rotate:   n.rotate + "deg",
+      }}
+    >
+      <svg width={w} height={h} viewBox="0 0 22 170" fill="none" overflow="visible">
+        <defs>
+          <linearGradient id={`ng_${n.key}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor={colorDark} />
+            <stop offset="45%"  stopColor={colorHi} />
+            <stop offset="100%" stopColor={colorDark} />
+          </linearGradient>
+        </defs>
+        <path
+          ref={pathRef}
+          stroke={`url(#ng_${n.key})`}
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function FallingNoodles({ fading }) {
+  const mkNoodle = (i, key, initialDelay) => ({
+    id: i, key,
+    left:     2 + Math.random() * 94,
+    startY:   initialDelay !== undefined ? -(initialDelay * 90) : -180,
+    duration: 3 + Math.random() * 2.5,
+    snakeDur: 0.3 + Math.random() * 0.25,
+    scale:    0.55 + Math.random() * 0.75,
+    amp:      5 + Math.random() * 6,
+    rotate:   (Math.random() * 30) - 15,
+    hue:      38 + Math.random() * 25,
+    sat:      68 + Math.random() * 18,
+    lit:      68 + Math.random() * 14,
+  });
 
   const [noodles, setNoodles] = React.useState(() =>
     Array.from({length: 20}, (_, i) => mkNoodle(i, i, i))
@@ -617,69 +702,14 @@ function FallingNoodles({ fading }) {
     }
   }, [fading]);
 
-  const snakeStyles = noodles.map(n =>
-    `@keyframes ${n.animName} {
-      0%   { d: path("${n.paths[0]}"); }
-      25%  { d: path("${n.paths[1]}"); }
-      50%  { d: path("${n.paths[2]}"); }
-      75%  { d: path("${n.paths[3]}"); }
-      100% { d: path("${n.paths[0]}"); }
-    }`
-  ).join('\n');
-
   return (
     <div style={{
       position:"fixed", inset:0, zIndex:9998, pointerEvents:"none", overflow:"hidden",
       opacity: fading ? 0 : 1,
       transition: fading ? "opacity 1.8s ease" : "none",
     }}>
-      <style>{`
-        @keyframes noodleFall {
-          0%   { transform: translateY(var(--sy)); opacity: 0; }
-          8%   { opacity: 0.95; }
-          85%  { opacity: 0.95; }
-          100% { transform: translateY(110vh);    opacity: 0; }
-        }
-        ${snakeStyles}
-      `}</style>
       {noodles.map(n => (
-        <div
-          key={n.key}
-          onAnimationEnd={() => respawn(n.id)}
-          style={{
-            position: "absolute",
-            left:     n.left + "%",
-            top:      0,
-            "--sy":   n.startY + "px",
-            animation:`noodleFall ${n.duration}s 0s ease-in forwards`,
-            filter:   "drop-shadow(0 2px 3px rgba(0,0,0,0.22))",
-          }}
-        >
-          <svg
-            width={Math.round(22 * n.scale)}
-            height={Math.round(160 * n.scale)}
-            viewBox="0 0 22 160"
-            fill="none"
-            overflow="visible"
-          >
-            <defs>
-              <linearGradient id={`ng_${n.key}`} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stopColor={`hsl(${n.hue},${n.sat-10}%,${n.lit-8}%)`} />
-                <stop offset="40%"  stopColor={`hsl(${n.hue},${n.sat}%,${Math.min(n.lit+20,94)}%)`} />
-                <stop offset="100%" stopColor={`hsl(${n.hue},${n.sat-10}%,${n.lit-8}%)`} />
-              </linearGradient>
-            </defs>
-            {/* Single path — gradient stroke gives round 3D look without seams */}
-            <path
-              d={n.paths[0]}
-              stroke={`url(#ng_${n.key})`}
-              strokeWidth="5"
-              strokeLinecap="round"
-              fill="none"
-              style={{ animation: `${n.animName} ${n.snakeDur}s ease-in-out infinite` }}
-            />
-          </svg>
-        </div>
+        <Noodle key={n.key} n={n} fading={fading} onDone={() => respawn(n.id)} />
       ))}
     </div>
   );
